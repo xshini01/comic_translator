@@ -1,0 +1,10 @@
+deep-translator
+translators
+huggingface-hub
+easyocr
+numpy
+opencv-python
+pillow
+ultralytics
+gradio
+sacremoses
