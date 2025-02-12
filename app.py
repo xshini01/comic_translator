@@ -2,6 +2,7 @@ from add_text import add_text
 from detect_bubbles import detect_bubbles
 from process_bubble import process_bubble
 from translator import MangaTranslator
+from IPython.display import clear_output
 from ultralytics import YOLO
 import easyocr
 from PIL import Image
@@ -9,6 +10,9 @@ import gradio as gr
 import numpy as np
 import cv2
 
+
+clear_output()
+print("Setup Complete")
 
 TITLE = "Komik Translator"
 DESCRIPTION = "Translate komik dari Inggris => Indonesia"
@@ -68,4 +72,4 @@ demo = gr.Interface(fn=predict,
                     description=DESCRIPTION)
 
 
-demo.launch(debug=True, share=True)
+demo.launch(debug=True, share=True, inline=False)
