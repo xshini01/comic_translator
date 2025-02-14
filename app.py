@@ -1,15 +1,21 @@
 from add_text import add_text
 from detect_bubbles import detect_bubbles
 from process_bubble import process_bubble
+from qwen2_vl_ocr import qwen2_vl_ocr
 from translator import MangaTranslator
 from IPython.display import clear_output
 from ultralytics import YOLO
-import easyocr
+from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from PIL import Image
 import gradio as gr
 import numpy as np
 import cv2
 
+# Load OCR Model
+model_ocr = Qwen2VLForConditionalGeneration.from_pretrained(
+    "prithivMLmods/Qwen2-VL-OCR-2B-Instruct", torch_dtype="auto", device_map="auto"
+)
+processor_ocr = AutoProcessor.from_pretrained("prithivMLmods/Qwen2-VL-OCR-2B-Instruct")
 
 clear_output()
 print("Setup Complete")
@@ -27,7 +33,6 @@ def predict(img, MODEL, translation_method, font):
     results = detect_bubbles(MODEL, img)
 
     manga_translator = MangaTranslator()
-    reader = easyocr.Reader(['en'], gpu= True)
 
     image = np.array(img)
 
@@ -36,8 +41,7 @@ def predict(img, MODEL, translation_method, font):
 
         detected_image = image[int(y1):int(y2), int(x1):int(x2)]
 
-        result_ocr = reader.readtext(detected_image, detail=0)
-        text = " ".join(result_ocr)
+        text = qwen2_vl_ocr(detected_image, model_ocr, processor_ocr)
 
         detected_image, cont = process_bubble(detected_image)
 
