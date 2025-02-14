@@ -8,7 +8,7 @@ def qwen2_vl_ocr(image, model, processor):
             "content": [
                 {
                     "type": "image",
-                    "image": {image},
+                    "image": image,
                 },
                 {"type": "text", "text": "Detect and extract all the text from the provided image. If the text is in uppercase (caps lock), ensure the output also reflects the same capitalization. Please preserve the case sensitivity of the text in the output"},
             ],

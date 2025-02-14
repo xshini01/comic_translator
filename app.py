@@ -41,7 +41,9 @@ def predict(img, MODEL, translation_method, font):
 
         detected_image = image[int(y1):int(y2), int(x1):int(x2)]
 
-        text = qwen2_vl_ocr(detected_image, model_ocr, processor_ocr)
+        im = Image.fromarray(np.uint8((detected_image)*255))
+
+        text = qwen2_vl_ocr(im, model_ocr, processor_ocr)
 
         detected_image, cont = process_bubble(detected_image)
 
@@ -59,6 +61,7 @@ demo = gr.Interface(fn=predict,
                                         label="Model YOLO",
                                         value="best.pt"),
                             gr.Dropdown([("Google", "google"),
+                                         ("DeepL", "deepl"),
                                          ("Helsinki-NLP's opus-mt-en-id model",
                                           "hf"),
                                          ("Baidu", "baidu"),
