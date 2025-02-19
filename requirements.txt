@@ -1,0 +1,12 @@
+deep-translator
+translators
+huggingface-hub
+numpy
+opencv-python
+pillow
+ultralytics
+gradio
+transformers
+accelerate
+qwen-vl-utils
+google-genai 
