@@ -14,6 +14,7 @@ from google.genai.errors import ClientError
 import cv2
 import time
 
+
 TITLE = "Komik Translator"
 DESCRIPTION = "Translate komik dari Inggris => Indonesia"
 
@@ -29,7 +30,8 @@ with gr.Blocks() as token_interface:
         save_button = gr.Button("Submit", variant="primary")
         output_label = gr.Label(label= "your token :")
         save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
-    
+
+clear_output()
 token_interface.launch()
 
 while not gemini_ai.token_set:
@@ -47,7 +49,6 @@ if not gemini_ai.genai_token:
             processor_ocr = AutoProcessor.from_pretrained("prithivMLmods/Qwen2-VL-OCR-2B-Instruct")
     
     load_ocr_model()
-
 
 def retry_on_429(func, *args, max_retries=5, base_wait=5, **kwargs):
     """Retry jika terjadi error 429 (RESOURCE_EXHAUSTED) dengan exponential backoff."""
@@ -132,4 +133,5 @@ demo = gr.Interface(fn=predict,
                     description=DESCRIPTION)
 
 
+clear_output()
 demo.launch(debug=True, share=True, inline=False)
