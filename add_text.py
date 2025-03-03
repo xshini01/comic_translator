@@ -3,18 +3,7 @@ import numpy as np
 import textwrap
 import cv2
 
-
 def add_text(image, text, font_path, bubble_contour):
-    """
-    Add text inside a speech bubble contour.
-    Args:
-        image (numpy.ndarray): Processed bubble image (cv2 format - BGR).
-        text (str): Text to be placed inside the speech bubble.
-        font_path (str): Font path.
-        bubble_contour (numpy.ndarray): Contour of the detected speech bubble.
-    Returns:
-        numpy.ndarray: Image with text placed inside the speech bubble.
-    """
     pil_image = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(pil_image)
 
@@ -24,38 +13,42 @@ def add_text(image, text, font_path, bubble_contour):
     font_size = 14
     wrapping_ratio = 0.075
 
-    wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), 
-                                 break_long_words=True)
-    
-    font = ImageFont.truetype(font_path, size=font_size)
+    max_iterations = 100
+    iterations = 0
 
-    lines = wrapped_text.split('\n')
-    total_text_height = (len(lines)) * line_height
-
-    while total_text_height > h:
-        line_height -= 2
-        font_size -= 2
-        wrapping_ratio += 0.025
-
-        wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), 
-                                 break_long_words=True)
-                                 
+    while iterations < max_iterations:
+        wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), break_long_words=False)
         font = ImageFont.truetype(font_path, size=font_size)
-
         lines = wrapped_text.split('\n')
-        total_text_height = (len(lines)) * line_height                         
+        total_text_height = len(lines) * line_height
 
-    # Vertical centering
+        if total_text_height <= h and all(draw.textlength(line, font=font) <= w for line in lines):
+            if total_text_height < h * 0.8 and font_size < 48 and all(draw.textlength(line, font=font) <= 0.9 * w for line in lines):
+                wrapping_ratio = max(0.02, wrapping_ratio - 0.005)
+                line_height += 2
+                font_size += 2
+
+                if total_text_height == line_height and all(draw.textlength(line, font=font) >= 0.5 * w for line in lines):
+                    break
+
+            else:
+                break  
+
+        elif total_text_height > h or any(draw.textlength(line, font=font) > w for line in lines):
+            line_height = max(16, line_height -2)
+            font_size = max(14, font_size - 2)
+            wrapping_ratio = min(wrapping_ratio + 0.01, 0.1)
+
+        iterations += 1
+
+    print(f"✅ Font akhir: {font_size}, Line height: {line_height}, Rasio wrapping: {wrapping_ratio:.2f}")
+
     text_y = y + (h - total_text_height) // 2
 
     for line in lines:
         text_length = draw.textlength(line, font=font)
-
-        # Horizontal centering
         text_x = x + (w - text_length) // 2
-
         draw.text((text_x, text_y), line, font=font, fill=(0, 0, 0))
-
         text_y += line_height
 
     image[:, :, :] = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
