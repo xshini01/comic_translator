@@ -10,3 +10,6 @@ transformers
 accelerate
 qwen-vl-utils
 google-genai 
+rarfile
+reportlab
+pdf2image

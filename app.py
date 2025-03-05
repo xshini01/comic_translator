@@ -1,9 +1,11 @@
-from add_text import add_text
-from detect_bubbles import detect_bubbles
-from process_bubble import process_bubble
-from qwen2_vl_ocr import qwen2_vl_ocr
-import gemini_ai
-from translator import MangaTranslator
+from utils.add_text import add_text
+from utils.detect_bubbles import detect_bubbles
+from utils.process_bubble import process_bubble
+from utils.qwen2_vl_ocr import qwen2_vl_ocr
+from utils.extract_file import extract_file
+from utils.compress_toPDF import compress_toPDF
+from utils import gemini_ai
+from utils.translator import MangaTranslator
 from IPython.display import clear_output
 from ultralytics import YOLO
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
@@ -13,43 +15,19 @@ import numpy as np
 from google.genai.errors import ClientError
 import cv2
 import time
+import os
+from tqdm import tqdm
+import shutil
 
+def get_images(image_folder):
+    image_paths = [
+        os.path.join(image_folder, file)
+        for file in os.listdir(image_folder)
+        if file.lower().endswith((".png", ".jpg", ".jpeg"))
+    ]
+    return image_paths  # Mengembalikan daftar path gambar
 
-TITLE = "Komik Translator"
-DESCRIPTION = "Translate komik dari Inggris => Indonesia"
-
-
-with gr.Blocks() as token_interface:
-        gr.Markdown("## Token Gemini Ai (opsional)")
-        token_input = gr.Textbox(
-            label="Jika Anda menggunakan token Gemini AI, OCR dan terjemahan akan dilakukan menggunakan Gemini AI. Jika tidak, model default akan digunakan.",
-            info= "Anda bisa mendapatkan token Gemini AI dari aistudio.google.com/apikey. Token ini bersifat opsional dan dapat digunakan untuk pemindaian dan terjemahan teks menggunakan Gemini AI (Google).",
-            placeholder="Masukan token disini (opsional) ...",
-            type="password"
-        )
-        save_button = gr.Button("Submit", variant="primary")
-        output_label = gr.Label(label= "your token :")
-        save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
-
-clear_output()
-token_interface.launch()
-
-while not gemini_ai.token_set:
-    time.sleep(2)
-
-model_ocr, processor_ocr = None, None
-
-if not gemini_ai.genai_token:
-    def load_ocr_model():
-        global model_ocr, processor_ocr
-        if model_ocr is None or processor_ocr is None:
-            model_ocr = Qwen2VLForConditionalGeneration.from_pretrained(
-                "prithivMLmods/Qwen2-VL-OCR-2B-Instruct", torch_dtype="auto", device_map="auto"
-            )
-            processor_ocr = AutoProcessor.from_pretrained("prithivMLmods/Qwen2-VL-OCR-2B-Instruct")
-    
-    load_ocr_model()
-
+# fungsi mencoba api
 def retry_on_429(func, *args, max_retries=5, base_wait=5, **kwargs):
     """Retry jika terjadi error 429 (RESOURCE_EXHAUSTED) dengan exponential backoff."""
     retries = 0
@@ -73,43 +51,102 @@ def retry_on_429(func, *args, max_retries=5, base_wait=5, **kwargs):
     raise RuntimeError(f"Gagal setelah {max_retries} percobaan karena kehabisan token.")
 
 
-def predict(img, MODEL, translation_method, font, progress=gr.Progress(track_tqdm=True)):
-    if translation_method == None:
-        translation_method = "google"
-    if font == None:
-        font = "fonts/fonts_animeace_i.ttf"
+# main fungsi
+def predict(files_input, MODEL, translation_method, font, progress=gr.Progress(track_tqdm=True)):
+    source_dir = 'folder_ekstrak'
+    save_dir = "save_images"
 
-    results = detect_bubbles(MODEL, img)
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+        shutil.rmtree(source_dir)
+
+    os.makedirs(save_dir, exist_ok=True)
+    
+    if translation_method is None:
+        translation_method = "google"
+    if font is None:
+        font = "fonts/fonts_animeace_i.ttf"
+    
+    extract_file(files_input)
 
     manga_translator = MangaTranslator()
 
-    image = np.array(img)
+    for root, dirs, files in os.walk(source_dir):
+        for file in tqdm(files, desc="Memproses Gambar"):
+            file_path = os.path.join(root, file)
 
-    for result in results:
-        x1, y1, x2, y2, score, class_id = result
+            results = detect_bubbles(MODEL, file_path)
 
-        detected_image = image[int(y1):int(y2), int(x1):int(x2)]
+            image = np.array(Image.open(file_path).convert("RGB"))
 
-        im = Image.fromarray(np.uint8((detected_image)*255))
+            for result in tqdm(results, desc= "Mentranslate Gambar"):
+                x1, y1, x2, y2, score, class_id = result
 
-        im.save("detected_image.png")
+                detected_image = image[int(y1):int(y2), int(x1):int(x2)]
 
-        detected_image, cont = process_bubble(detected_image)
+                im = Image.fromarray(np.uint8((detected_image)*255))
 
-        if gemini_ai.genai_token :
-            text = retry_on_429(gemini_ai.gemini_ai_ocr, "detected_image.png")
-            text_translated = retry_on_429(gemini_ai.gemini_ai_translator, text)
-        else:
-            text = qwen2_vl_ocr(im, model_ocr, processor_ocr)
-            text_translated = manga_translator.translate(text,
-                                                        method=translation_method)
+                im.save("detected_image.png")
 
-        image_with_text = add_text(detected_image, text_translated, font, cont)
+                detected_image, cont = process_bubble(detected_image)
 
-    return image
+                if gemini_ai.genai_token :
+                    text = retry_on_429(gemini_ai.gemini_ai_ocr, "detected_image.png")
+                    text_translated = retry_on_429(gemini_ai.gemini_ai_translator, text)
+                else:
+                    text = qwen2_vl_ocr(im, model_ocr, processor_ocr)
+                    text_translated = manga_translator.translate(text,
+                                                                method=translation_method)
 
+                image_with_text = add_text(detected_image, text_translated, font, cont)
+
+            image_path = os.path.join(save_dir, f"output_image_{sum(1 for entry in os.scandir(save_dir) if entry.is_file()) + 1}.png")
+            cv2.imwrite(image_path, image)
+            time.sleep(0.1)
+
+    to_pdf= compress_toPDF()
+
+    return get_images(source_dir), get_images(save_dir), gr.update(value=to_pdf, visible=True)
+
+            
+TITLE = "Komik Translator"
+DESCRIPTION = "Translate komik dari Inggris => Indonesia"
+
+# ui token
+with gr.Blocks() as token_interface:
+        gr.Markdown("## Token/API Key Gemini Ai (opsional)")
+        token_input = gr.Textbox(
+            label="Jika Anda menggunakan Token/API Key Gemini AI, OCR dan terjemahan akan dilakukan menggunakan Gemini AI. Jika tidak, model default(qwen2_vl_ocr) akan digunakan.",
+            info="Anda bisa mendapatkan Token/API Key Gemini AI dari <a href=\"https://aistudio.google.com/apikey\" target=\"_blank\"> SINI (Token/API Key Google)</a>. \nToken/API Key ini bersifat opsional dan dapat digunakan untuk pemindaian dan terjemahan teks menggunakan Gemini AI (Google).",
+            placeholder="Masukan Token/API Key disini (opsional) ...",
+            type="password"
+        )
+        save_button = gr.Button("Submit", variant="primary")
+        output_label = gr.Label(label= "your Token/API Key :")
+        save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
+
+clear_output()
+token_interface.launch()
+
+while not gemini_ai.token_set:
+    time.sleep(2)
+
+model_ocr, processor_ocr = None, None
+
+if not gemini_ai.genai_token:
+    def load_ocr_model():
+        global model_ocr, processor_ocr
+        if model_ocr is None or processor_ocr is None:
+            model_ocr = Qwen2VLForConditionalGeneration.from_pretrained(
+                "prithivMLmods/Qwen2-VL-OCR-2B-Instruct", torch_dtype="auto", device_map="auto"
+            )
+            processor_ocr = AutoProcessor.from_pretrained("prithivMLmods/Qwen2-VL-OCR-2B-Instruct")
+    
+    load_ocr_model()
+
+# main interface
 demo = gr.Interface(fn=predict,
-                    inputs=["image",
+                    inputs=[gr.Files(),
                             gr.Dropdown([("model-1", "model.pt"),
                                          ("model-2","best.pt")],
                                         label="Model YOLO",
@@ -128,10 +165,11 @@ demo = gr.Interface(fn=predict,
                                         label="Text Font",
                                         value="fonts/fonts_animeace_i.ttf")
                             ],
-                    outputs=[gr.Image()],
+                    outputs=[gr.Gallery(label="Gambar Asli"),
+                             gr.Gallery(label=" Hasil Terjemahan"),
+                             gr.File(label="Download File", visible= False)],
                     title=TITLE,
                     description=DESCRIPTION)
-
 
 clear_output()
 demo.launch(debug=True, share=True, inline=False)
