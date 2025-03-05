@@ -18,6 +18,7 @@ import time
 import os
 from tqdm import tqdm
 import shutil
+from natsort import natsorted
 
 def get_images(image_folder):
     image_paths = [
@@ -72,6 +73,7 @@ def predict(files_input, MODEL, translation_method, font, progress=gr.Progress(t
     manga_translator = MangaTranslator()
 
     for root, dirs, files in os.walk(source_dir):
+        files = natsorted(files)
         for file in tqdm(files, desc="Memproses Gambar"):
             file_path = os.path.join(root, file)
 
