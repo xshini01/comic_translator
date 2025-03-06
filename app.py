@@ -148,7 +148,7 @@ if not gemini_ai.genai_token:
 
 # main interface
 demo = gr.Interface(fn=predict,
-                    inputs=[gr.Files(),
+                    inputs=[gr.Files(file_count= "multiple", file_types= ["image", ".zip", ".rar", ".pdf"]),
                             gr.Dropdown([("model-1", "model.pt"),
                                          ("model-2","best.pt")],
                                         label="Model YOLO",
