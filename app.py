@@ -128,7 +128,7 @@ with gr.Blocks() as token_interface:
         save_button.click(fn=gemini_ai.save_token, inputs=token_input, outputs=output_label)
 
 clear_output()
-token_interface.launch()
+token_interface.launch(share=True)
 
 while not gemini_ai.token_set:
     time.sleep(2)
