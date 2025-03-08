@@ -17,7 +17,7 @@ def add_text(image, text, font_path, bubble_contour):
     iterations = 0
 
     while iterations < max_iterations:
-        wrapped_text = textwrap.fill(text, width=int(w * wrapping_ratio), break_long_words=False)
+        wrapped_text = textwrap.fill(text, width=max(3, int(w * wrapping_ratio)), break_long_words=False)
         font = ImageFont.truetype(font_path, size=font_size)
         lines = wrapped_text.split('\n')
         total_text_height = len(lines) * line_height

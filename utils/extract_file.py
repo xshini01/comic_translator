@@ -41,7 +41,7 @@ def extract_file(files):
             try:
                 with Image.open(file) as img:
                     img.verify()  # Cek apakah file valid sebagai gambar
-                shutil.move(file, os.path.join(extract_to, file))
+                shutil.move(file, os.path.join(extract_to, os.path.basename(file)))
             except Exception:
                 print(f"File {file} bukan gambar atau tidak valid.")
 

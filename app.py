@@ -41,7 +41,12 @@ def retry_on_429(func, *args, max_retries=5, base_wait=5, **kwargs):
             if 'RESOURCE_EXHAUSTED' in error_message or '429' in error_message:
                 retries += 1
                 wait_time = base_wait * (2 ** (retries - 1)) 
-                print(f"[ERROR 429] Token habis. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
+                print(f"Token habis. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
+                time.sleep(wait_time)
+            elif 'UNAVAILABLE' in error_message or '503' in error_message:
+                retries += 1
+                wait_time = base_wait * (2 ** (retries - 1)) 
+                print(f"Model unavailable. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
                 time.sleep(wait_time)
             else:
                 raise  
@@ -49,7 +54,7 @@ def retry_on_429(func, *args, max_retries=5, base_wait=5, **kwargs):
             print(f"Error lain: {e}")
             break
 
-    raise RuntimeError(f"Gagal setelah {max_retries} percobaan karena kehabisan token.")
+    raise RuntimeError(f"Gagal setelah {max_retries} percobaan.")
 
 
 # main fungsi
