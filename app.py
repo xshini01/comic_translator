@@ -29,21 +29,23 @@ def get_images(image_folder):
     return image_paths  # Mengembalikan daftar path gambar
 
 # fungsi mencoba api
-def retry_on_429(func, *args, max_retries=5, base_wait=5, **kwargs):
-    """Retry jika terjadi error 429 (RESOURCE_EXHAUSTED) dengan exponential backoff."""
+def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
+    """Retry jika terjadi error 429 (RESOURCE_EXHAUSTED) atau 503 (UNAVAILABLE) dengan exponential backoff."""
     retries = 0
 
     while retries < max_retries:
         try:
             return func(*args, **kwargs)
         except ClientError as e:
-            error_message = str(e)  
-            if 'RESOURCE_EXHAUSTED' in error_message or '429' in error_message:
+            error_message = str(e)
+            error_code = getattr(e, 'code', None)
+
+            if 'RESOURCE_EXHAUSTED' in error_message or '429' in error_message or error_code == 429:
                 retries += 1
                 wait_time = base_wait * (2 ** (retries - 1)) 
                 print(f"Token habis. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
                 time.sleep(wait_time)
-            elif 'UNAVAILABLE' in error_message or '503' in error_message:
+            elif 'UNAVAILABLE' in error_message or '503' in error_message or error_code == 503:
                 retries += 1
                 wait_time = base_wait * (2 ** (retries - 1)) 
                 print(f"Model unavailable. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
