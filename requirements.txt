@@ -1,0 +1,8 @@
+deep-translator
+ultralytics
+qwen-vl-utils
+google-genai 
+rarfile
+img2pdf
+pdf2image
+mangadex-downloader
