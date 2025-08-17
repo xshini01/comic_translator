@@ -105,7 +105,7 @@ def predict(files_input, model, translation_method, font, api_key=None, progress
     source_dir = 'folder_ekstrak'
     save_dir = "save_images"
 
-    MODEL = config.models.get(model, "best.pt")
+    MODEL = config.models.get(model, "model.pt")
     font = config.fonts.get(font, "fonts/fonts_animeace_i.ttf")
     tl_method = config.full_methods.get(translation_method, "google")
 
@@ -245,7 +245,7 @@ def main ():
                     input_model = gr.Dropdown(
                         choices=list(config.models.keys()),
                         label="Model YOLO",
-                        value="Model-2",
+                        value="Model-1",
                         interactive=True,
                     )
                     input_tl_method = gr.Dropdown(
