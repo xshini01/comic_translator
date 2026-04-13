@@ -38,23 +38,23 @@ def gemini_ai_ocr(imgs) :
     client = genai.Client(api_key=genai_token)
     image = Image.open(imgs)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash-lite",
         config=types.GenerateContentConfig(
-            system_instruction="You are an AI designed to extract text from provided images.  Maintain the original case of the extracted text. If the text in the image is uppercase, the extracted text should also be uppercase. If the text in the image is lowercase, the extracted text should be lowercase, and so on. Output only the extracted text without any additional words, explanations, or formatting changes.",
+            system_instruction="Extract text from images exactly as-is, preserving original case. Output only the extracted text, nothing else.",
             safety_settings=safety_set,
         ),
             
-        contents=["Please extract the text from each speech bubble. For each bubble, add a semicolon (;) at the end, and place the output on a new line for every speech bubble.", image])
+        contents=["Extract each speech bubble's text. End each with ';', one per line.", image])
     return response.text
 
-def gemini_ai_translator(text) :
+def gemini_ai_translator(text):
     client = genai.Client(api_key=genai_token)
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash-lite",
         config=types.GenerateContentConfig(
-            system_instruction="You are an AI translator specializing in translating English to Indonesian. Your task is to translate the given text into clear and natural-sounding Indonesian while preserving the original capitalization. If the original text is uppercase, keep it uppercase; if lowercase, keep it lowercase. The translation should be easy to understand, not too formal, and should flow naturally in everyday conversation. Output only the translated text without any additional words or explanations.",
+            system_instruction="Translate English to Indonesian. Keep original capitalization (uppercase stays uppercase, lowercase stays lowercase). Output must be natural, casual, and easy to understand. Output only the translation, nothing else.",
             safety_settings=safety_set,
-            temperature = 0.5,
+            temperature=0.5,
         ),
-        contents=[f"Translate this text into Indonesian : {text}."])
+        contents=[f"Translate to Indonesian: {text}"])
     return response.text
