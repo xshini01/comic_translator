@@ -67,36 +67,25 @@ def get_images(image_folder):
 # fungsi mencoba api
 def retry_on_429(func, *args, max_retries=10, base_wait=5, **kwargs):
     retries = 0
-
     while retries < max_retries:
         try:
             return func(*args, **kwargs)
         except ClientError as e:
-            error_response = getattr(e, 'response', {})
-            error_info = error_response.get('error', {})
-            error_message = error_info.get('message', str(e))
-            error_status = error_info.get('status')
-            error_code = error_info.get('code')
+            error_message = str(e)
+            is_429 = 'RESOURCE_EXHAUSTED' in error_message or '429' in error_message
+            is_503 = 'UNAVAILABLE' in error_message or '503' in error_message
 
-            if 'RESOURCE_EXHAUSTED' in error_status or '429' in error_message or error_code == 429:
+            if is_429 or is_503:
                 retries += 1
-                wait_time = base_wait * (2 ** (retries - 1)) 
-                print(f"Token habis. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
-                time.sleep(wait_time)
-            elif 'UNAVAILABLE' in error_status or '503' in error_message or error_code == 503:
-                retries += 1
-                wait_time = base_wait * (2 ** (retries - 1)) 
-                print(f"Model unavailable. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
+                wait_time = base_wait * (2 ** (retries - 1))
+                label = "Token habis" if is_429 else "Model unavailable"
+                print(f"{label}. Coba lagi dalam {wait_time} detik... ({retries}/{max_retries})")
                 time.sleep(wait_time)
             else:
-                raise  
+                raise
         except Exception as e:
-            print(f"Error lain: {e}")
-            print("ClientError:", e)
-            print("e.response:", getattr(e, 'response', 'No response'))
-
-            break
-
+            print(f"Error tidak terduga: {e}")
+            raise
     raise RuntimeError(f"Gagal setelah {max_retries} percobaan.")
 
 
